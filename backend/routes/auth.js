@@ -1,6 +1,16 @@
 const express = require('express');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const router = express.Router();
 const User = require('../models/User');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'nestlucksecret';
+
+const createToken = (user) => jwt.sign(
+  { id: user._id, username: user.username, email: user.email },
+  JWT_SECRET,
+  { expiresIn: '7d' }
+);
 
 // Register a new user
 router.post('/register', async (req, res) => {
@@ -26,14 +36,16 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Email already registered' });
     }
     
+    const hashedPassword = await bcrypt.hash(password, 12);
     user = new User({ 
       username, 
-      password,
+      password: hashedPassword,
       email,
       savedProperties: [] 
     });
     await user.save();
-    res.json({ username, email });
+    const token = createToken(user);
+    res.json({ username, email, token });
   } catch (err) {
     console.error('Registration error:', err);
     res.status(500).json({ error: 'Registration failed' });
@@ -54,12 +66,13 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'User not found' });
     }
     
-    // Verify password matches
-    if (user.password !== password) {
+    const passwordMatches = await bcrypt.compare(password, user.password);
+    if (!passwordMatches) {
       return res.status(400).json({ error: 'Invalid password' });
     }
     
-    res.json({ username, email: user.email });
+    const token = createToken(user);
+    res.json({ username, email: user.email, token });
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ error: 'Login failed' });

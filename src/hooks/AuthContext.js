@@ -22,9 +22,10 @@ export function AuthProvider({ children }) {
 		setError(null);
 		try {
 			const response = await loginAPI(username, password);
-			const userData = { username: response.username };
+			const userData = { username: response.username, email: response.email, token: response.token };
 			setUser(userData);
 			localStorage.setItem('user', JSON.stringify(userData));
+			localStorage.setItem('token', response.token);
 			return response;
 		} catch (err) {
 			const errorMsg = err.message || 'Login failed';
@@ -40,9 +41,10 @@ export function AuthProvider({ children }) {
 		setError(null);
 		try {
 			const response = await registerAPI(username, password, email);
-			const userData = { username: response.username };
+			const userData = { username: response.username, email: response.email, token: response.token };
 			setUser(userData);
 			localStorage.setItem('user', JSON.stringify(userData));
+			localStorage.setItem('token', response.token);
 			return response;
 		} catch (err) {
 			const errorMsg = err.message || 'Registration failed';
@@ -56,6 +58,7 @@ export function AuthProvider({ children }) {
 	const signOut = () => {
 		setUser(null);
 		localStorage.removeItem('user');
+		localStorage.removeItem('token');
 		setError(null);
 	};
 
